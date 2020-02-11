@@ -85,12 +85,7 @@ def main():
         description='Register a minecraft ID to your discord profile ' +
                     'and add it to the minecraft servers whitelist.',
         aliases=('add', 'set'))
-    async def bind(ctx: Context, *args):
-        if len(args) == 0:
-            return
-
-        mc_id: str = args[0].lower()
-
+    async def bind(ctx: Context, mc_id: str):
         dc_id, curr_mc_id = db.get_whitelist_by_mc_id(mc_id)
 
         if curr_mc_id is not None and mc_id == curr_mc_id:
@@ -112,6 +107,11 @@ def main():
         await ctx.send(
             ':white_check_mark:  You are now bound to the mc ' +
             'account `{}` and added to the servers whitelist.'.format(mc_id))
+
+    @bind.error
+    async def bind_error(ctx: Context, err):
+        if isinstance(err, commands.MissingRequiredArgument):
+            await ctx.send_help()
 
     @bot.command(
         brief='Remove from whitelist',
