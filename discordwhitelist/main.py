@@ -2,7 +2,7 @@ import logging
 import argparse
 from rcon import RCON
 from database import SQLite
-from discord import Member
+from discord import Member, Embed
 from discord.ext import commands
 from discord.ext.commands import Context
 
@@ -80,6 +80,8 @@ def main():
     # COMMANDS #
     ############
 
+    # bind
+
     @bot.command(
         brief='Add to whitelist',
         description='Register a minecraft ID to your discord profile ' +
@@ -113,6 +115,8 @@ def main():
         if isinstance(err, commands.MissingRequiredArgument):
             await ctx.send_help()
 
+    # unbind
+
     @bot.command(
         brief='Remove from whitelist',
         description='Unregisters a bound minecraft ID from your account ' +
@@ -131,6 +135,46 @@ def main():
         await ctx.send(
             ':white_check_mark:  Successfully removed you from ' +
             'the servers whitelist and account is unbound.'.format(mc_id))
+
+    # info
+
+    @bot.command(
+        brief='Displays current binding',
+        description='Displays the currently bound minecraft ID.',
+        aliases=('bound', 'display'))
+    async def info(ctx: Context):
+        _, mc_id = db.get_whitelist_by_discord_id(str(ctx.message.author.id))
+        if mc_id is None:
+            await ctx.send(':warning:  Ypur account is not bound to any ' +
+                           'minecraft ID.')
+            return
+
+        await ctx.send(
+            ':information_source:  Your account is currently bound to the ' +
+            'minecraft ID `{}`.'.format(mc_id))
+
+    # list
+
+    @bot.command(
+        brief='Displays whitelisted users',
+        description='Displays currently whitelisted and bound users.',
+        name='list',
+        aliases=('ls', 'all'))
+    async def list_bindings(ctx: Context):
+        MAX_LEN = 40
+
+        wl = db.get_whitelist()
+        em = Embed()
+        em.title = 'Whitelist'
+        em.color = 0xf90261
+        em.description = ''
+        for dc_id, mc_id in list(wl.items())[:MAX_LEN]:
+            em.description += '<@{}> - `{}`\n'.format(dc_id, mc_id)
+
+        if len(wl) > MAX_LEN:
+            em.description += '*and {} more...*'.format(len(wl) - MAX_LEN)
+
+        await ctx.send(embed=em)
 
     ###########
     # RUN BOT #
