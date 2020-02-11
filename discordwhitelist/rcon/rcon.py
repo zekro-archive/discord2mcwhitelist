@@ -51,11 +51,11 @@ class Packet:
     @staticmethod
     def decode(data: bytes) -> (object, int):
         if len(data) < 14:
-            return None, 14
+            return (None, 14)
 
         ln = struct.unpack('<i', data[:4])[0] + 4
         if len(data) < ln:
-            return None, ln
+            return (None, ln)
 
         ident, cmd = struct.unpack('<ii', data[4:12])
         payload = data[12:-2].decode('ascii')
@@ -64,7 +64,7 @@ class Packet:
         if padding != b'\x00\x00':
             raise InvalidPacketException()
 
-        return Packet(ident, cmd, payload), 0
+        return (Packet(ident, cmd, payload), 0)
 
 
 class RCON:
@@ -95,10 +95,11 @@ class RCON:
         data = b''
         while True:
             packet, ln = Packet.decode(data)
-            if packet:
+            if packet and ln == 0:
                 return packet
             else:
-                data += self._socket.recv(ln - len(data))
+                while len(data) < ln:
+                    data += self._socket.recv(ln - len(data))
                 # print('→ {}'.format(data))
 
     def _login(self):
