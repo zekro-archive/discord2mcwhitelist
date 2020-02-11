@@ -2,16 +2,13 @@ import logging
 import argparse
 from rcon import RCON
 from database import SQLite
-from discord import Member, Embed
+from discord import Member, Embed, Message
 from discord.ext import commands
 from discord.ext.commands import Context
 
 
-# TODO:
-#  - add list and info command
-#  - make rcon requests asyncronous and
-#    out-timable that they dont block
-#    the bot loop if they stuck
+EMBED_COLOR = 0xf90261
+
 
 def parse_args():
     """
@@ -68,6 +65,27 @@ def main():
         logging.info(
             'Ready (logged in as {}#{} [{}])'.format(
                 bot.user.name, bot.user.discriminator, bot.user.id))
+
+    @bot.event
+    async def on_message(msg: Message):
+        if bot.user in msg.mentions:
+            em = Embed()
+            em.color = EMBED_COLOR
+            em.title = 'discord2mcwhitelist'
+            em.description = ('Hey, I am a bot which can connect your ' +
+                              'Discord Account with your Minecraft User ' +
+                              'ID and add you to the Guilds Minecraft ' +
+                              'Server Whitelist!\n\n' +
+                              'Just enter `{}help` in the chat for more ' +
+                              'information on how to use ' +
+                              'me.').format(args.prefix)
+            em.add_field(
+                name='GitHub',
+                value='https://github.com/zekroTJA/discord2mcwhitelist')
+            em.set_footer(
+                text='© 2020 zekro.de')
+            await msg.channel.send(embed=em)
+        await bot.process_commands(msg)
 
     @bot.event
     async def on_member_remove(member: Member):
@@ -166,7 +184,7 @@ def main():
         wl = db.get_whitelist()
         em = Embed()
         em.title = 'Whitelist'
-        em.color = 0xf90261
+        em.color = EMBED_COLOR
         em.description = ''
         for dc_id, mc_id in list(wl.items())[:MAX_LEN]:
             em.description += '<@{}> - `{}`\n'.format(dc_id, mc_id)
