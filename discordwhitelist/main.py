@@ -2,17 +2,16 @@ import logging
 import argparse
 from rcon import RCON
 from database import SQLite
+from discord import Member
 from discord.ext import commands
 from discord.ext.commands import Context
 
 
 # TODO:
-#  - add remove and list command
+#  - add list and info command
 #  - make rcon requests asyncronous and
 #    out-timable that they dont block
 #    the bot loop if they stuck
-#  - remove people from white list when
-#    they quit the server
 
 def parse_args():
     """
@@ -21,15 +20,27 @@ def parse_args():
     args namespace.
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument(
+
+    bot = parser.add_argument_group('Discord Bot')
+    bot.add_argument(
         '--token', '-t', required=True, type=str,
         help='The discord bot token')
-    parser.add_argument(
+    bot.add_argument(
         '--prefix', '-p', default='>', type=str,
         help='The command prefix of the bot (def: \'>\')')
+
+    rcon = parser.add_argument_group('RCON Connection')
+    rcon.add_argument(
+        '--rcon-address', '-raddr', default='localhost:25575', type=str,
+        help='The address of the RCON server (def: \'localhost:25575\')')
+    rcon.add_argument(
+        '--rcon-password', '-rpw', required=True, type=str,
+        help='The password of the RCON server')
+
     parser.add_argument(
         '--log-level', '-l', default=20, type=int,
         help='Set log level of the default logger (def: 20)')
+
     return parser.parse_args()
 
 
@@ -41,7 +52,7 @@ def main():
         format='%(asctime)s | %(levelname)s | %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S')
 
-    rcon = RCON('localhost', '123')
+    rcon = RCON(args.rcon_address, args.rcon_password)
     rcon.connect()
 
     db = SQLite('database.db')
@@ -57,6 +68,13 @@ def main():
         logging.info(
             'Ready (logged in as {}#{} [{}])'.format(
                 bot.user.name, bot.user.discriminator, bot.user.id))
+
+    @bot.event
+    async def on_member_remove(member: Member):
+        _, mc_id = db.get_whitelist_by_discord_id(str(member.id))
+        if mc_id is not None:
+            rcon.command('whitelist remove {}'.format(mc_id))
+            db.rem_witelist(str(member.id))
 
     ############
     # COMMANDS #
@@ -94,6 +112,25 @@ def main():
         await ctx.send(
             ':white_check_mark:  You are now bound to the mc ' +
             'account `{}` and added to the servers whitelist.'.format(mc_id))
+
+    @bot.command(
+        brief='Remove from whitelist',
+        description='Unregisters a bound minecraft ID from your account ' +
+                    'and removes you from the whitelist of the server.',
+        aliases=('remove', 'unset'))
+    async def unbind(ctx: Context):
+        _, mc_id = db.get_whitelist_by_discord_id(str(ctx.message.author.id))
+        if mc_id is None:
+            await ctx.send(':warning:  Ypur account is not bound to any ' +
+                           'minecraft ID.')
+            return
+
+        rcon.command('whitelist remove {}'.format(mc_id))
+        db.rem_witelist(str(ctx.message.author.id))
+
+        await ctx.send(
+            ':white_check_mark:  Successfully removed you from ' +
+            'the servers whitelist and account is unbound.'.format(mc_id))
 
     ###########
     # RUN BOT #
