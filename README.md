@@ -8,8 +8,6 @@ Leight Discord bot which binds Discord Accounts to Minecraft User IDs (Usernames
 
 - **Make RCON requests async**  
   Sometimes, when RCON requests are stuck, they will block the Bots event loop which leads to a connection timeout.
-- **Whitelist list and info command**
-  Command which shows the current servers whitelist and the account which is currently bound to your Discord account.
   
 ## Installation and Usage
 
