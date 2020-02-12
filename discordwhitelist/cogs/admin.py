@@ -38,10 +38,11 @@ class Admin(Cog, name='Admin'):
         description='Sets a role as admin role.')
     @is_guild_owner()
     async def adminrole(self, ctx: Context, role: Role):
-        self._db.set_admin_role(ctx.guild.id, role.id)
-        await ctx.send(
-            ':white_check_mark:  Role ' +
-            '`{}` is now set as admin role.'.format(role.name))
+        async with ctx.typing():
+            self._db.set_admin_role(ctx.guild.id, role.id)
+            await ctx.send(
+                ':white_check_mark:  Role ' +
+                '`{}` is now set as admin role.'.format(role.name))
 
     @adminrole.error
     async def adminrole_error(self, ctx: Context, err):
@@ -58,13 +59,14 @@ class Admin(Cog, name='Admin'):
         brief='Execute RCON command',
         description='Execute RCON command directly on server')
     async def sudo(self, ctx: Context, *cmd):
-        if not await self._check_admin(ctx):
-            return
+        async with ctx.typing():
+            if not await self._check_admin(ctx):
+                return
 
-        if not self._sudo_enabled:
-            await ctx.send(':warning:  Sudo is disbaled by configuration.')
-            return
+            if not self._sudo_enabled:
+                await ctx.send(':warning:  Sudo is disbaled by configuration.')
+                return
 
-        res = self._rcon.command(' '.join(cmd))
-        await ctx.send(
-            'Result:\n```{}```'.format(res or '[empty]'))
+            res = self._rcon.command(' '.join(cmd))
+            await ctx.send(
+                'Result:\n```{}```'.format(res or '[empty]'))
