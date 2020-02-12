@@ -20,6 +20,12 @@ class SQLite:
             '  `discordId` VARCHAR(22),' +
             '  `mcId` VARCHAR(32)' +
             ');')
+        self._conn.execute(
+            'CREATE TABLE IF NOT EXISTS `guilds` (' +
+            '  `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,' +
+            '  `guildId` VARCHAR(22),' +
+            '  `adminRoleId` VARCHAR(32)' +
+            ');')
         self._conn.commit()
 
     def get_whitelist(self) -> dict:
@@ -68,4 +74,28 @@ class SQLite:
         self._conn.execute(
             'DELETE FROM `whitelist` WHERE ' +
             '`discordId` = ? OR `mcId` = ?;', (ident, ident))
+        self._conn.commit()
+
+    def get_admin_role(self, guild_id: str) -> str:
+        res = self._conn.execute(
+            'SELECT `adminRoleId` from `guilds` WHERE ' +
+            '`guildId` = ?;', (guild_id,))
+        role = res.fetchone()
+        return role[0] if role else None
+
+    def set_admin_role(self, guild_id: str, role_id: str):
+        res = self._conn.execute(
+            'SELECT `guildId` from `guilds` WHERE ' +
+            '`guildId` = ?;', (guild_id,))
+        res_guild_id = res.fetchone()
+
+        if res_guild_id is None:
+            self._conn.execute(
+                'INSERT INTO `guilds` (`guildId`, `adminRoleId`) VALUES ' +
+                '(?, ?);', (guild_id, role_id))
+        else:
+            self._conn.execute(
+                'UPDATE `guilds` SET `adminRoleId` = ? WHERE ' +
+                '`guildId` = ?;', (role_id, guild_id))
+
         self._conn.commit()

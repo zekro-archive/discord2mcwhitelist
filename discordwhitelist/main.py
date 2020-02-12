@@ -4,10 +4,8 @@ from rcon import RCON
 from database import SQLite
 from discord import Member, Embed, Message
 from discord.ext import commands
-from discord.ext.commands import Context
-
-
-EMBED_COLOR = 0xf90261
+from shared import EMBED_COLOR
+from cogs import WhitelistMgmt, Admin
 
 
 def parse_args():
@@ -25,6 +23,9 @@ def parse_args():
     bot.add_argument(
         '--prefix', '-p', default='>', type=str,
         help='The command prefix of the bot (def: \'>\')')
+    bot.add_argument(
+        '--allow-sudo', default=False, action='store_true',
+        help='Whether or not sudo command should be enabled')
 
     rcon = parser.add_argument_group('RCON Connection')
     rcon.add_argument(
@@ -41,20 +42,6 @@ def parse_args():
     return parser.parse_args()
 
 
-def lower(arg: str) -> str:
-    return arg.lower()
-
-
-def is_verbose(argv: list) -> bool:
-    return '-v' in argv or '--verbose' in argv
-
-
-async def verbose_output(ctx: Context, argv: list, op: list):
-    if is_verbose(argv) and op:
-        await ctx.send(
-            'Verbose output:\n```{}```'.format('\n'.join(op)))
-
-
 def main():
     args = parse_args()
 
@@ -69,6 +56,10 @@ def main():
     db = SQLite('database.db')
 
     bot = commands.Bot(command_prefix=args.prefix)
+
+    if args.allow_sudo:
+        logging.warn('allow sudo is enabled! This gives acces to the ' +
+                     'RCON console directly out of the discord chat!')
 
     ##########
     # EVENTS #
@@ -108,111 +99,12 @@ def main():
             rcon.command('whitelist remove {}'.format(mc_id))
             db.rem_witelist(str(member.id))
 
-    ############
-    # COMMANDS #
-    ############
+    ################
+    # REGISTRATION #
+    ################
 
-    # bind
-
-    @bot.command(
-        brief='Add to whitelist',
-        description='Register a minecraft ID to your discord profile ' +
-                    'and add it to the minecraft servers whitelist.',
-        aliases=('add', 'set'))
-    async def bind(ctx: Context, mc_id: lower, *argv):
-        dc_id, curr_mc_id = db.get_whitelist_by_mc_id(mc_id)
-
-        if curr_mc_id is not None and mc_id == curr_mc_id:
-            await ctx.send(':warning:  This minecraft ID is already ' +
-                           'bound to your account!')
-            return
-
-        if dc_id is not None and dc_id != str(ctx.message.author.id):
-            await ctx.send(':warning:  This minecraft ID is already ' +
-                           'registered by another user!')
-            return
-
-        old_mc_id = db.set_witelist(str(ctx.message.author.id), mc_id)
-
-        vbop = []
-
-        if old_mc_id is not None:
-            vbop.append(rcon.command('whitelist remove {}'.format(old_mc_id)))
-        vbop.append(rcon.command('whitelist add {}'.format(mc_id)))
-
-        await ctx.send(
-            ':white_check_mark:  You are now bound to the mc ' +
-            'account `{}` and added to the servers whitelist.'.format(mc_id))
-
-        await verbose_output(ctx, argv, vbop)
-
-    @bind.error
-    async def bind_error(ctx: Context, err):
-        if isinstance(err, commands.MissingRequiredArgument):
-            await ctx.send_help()
-
-    # unbind
-
-    @bot.command(
-        brief='Remove from whitelist',
-        description='Unregisters a bound minecraft ID from your account ' +
-                    'and removes you from the whitelist of the server.',
-        aliases=('remove', 'unset'))
-    async def unbind(ctx: Context, *argv):
-        _, mc_id = db.get_whitelist_by_discord_id(str(ctx.message.author.id))
-        if mc_id is None:
-            await ctx.send(':warning:  Ypur account is not bound to any ' +
-                           'minecraft ID.')
-            return
-
-        vbop = (rcon.command('whitelist remove {}'.format(mc_id)),)
-        db.rem_witelist(str(ctx.message.author.id))
-
-        await ctx.send(
-            ':white_check_mark:  Successfully removed you from ' +
-            'the servers whitelist and account is unbound.'.format(mc_id))
-
-        await verbose_output(ctx, argv, vbop)
-
-    # info
-
-    @bot.command(
-        brief='Displays current binding',
-        description='Displays the currently bound minecraft ID.',
-        aliases=('bound', 'display'))
-    async def info(ctx: Context):
-        _, mc_id = db.get_whitelist_by_discord_id(str(ctx.message.author.id))
-        if mc_id is None:
-            await ctx.send(':warning:  Ypur account is not bound to any ' +
-                           'minecraft ID.')
-            return
-
-        await ctx.send(
-            ':information_source:  Your account is currently bound to the ' +
-            'minecraft ID `{}`.'.format(mc_id))
-
-    # list
-
-    @bot.command(
-        brief='Displays whitelisted users',
-        description='Displays currently whitelisted and bound users.',
-        name='list',
-        aliases=('ls', 'all'))
-    async def list_bindings(ctx: Context):
-        MAX_LEN = 40
-
-        wl = db.get_whitelist()
-        em = Embed()
-        em.title = 'Whitelist'
-        em.color = EMBED_COLOR
-        em.description = ''
-        for dc_id, mc_id in list(wl.items())[:MAX_LEN]:
-            em.description += '<@{}> - `{}`\n'.format(dc_id, mc_id)
-
-        if len(wl) > MAX_LEN:
-            em.description += '*and {} more...*'.format(len(wl) - MAX_LEN)
-
-        await ctx.send(embed=em)
+    bot.add_cog(WhitelistMgmt(bot, rcon, db))
+    bot.add_cog(Admin(bot, rcon, db, args.allow_sudo))
 
     ###########
     # RUN BOT #
