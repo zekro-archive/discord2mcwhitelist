@@ -74,8 +74,9 @@ class RCON:
     _port: int
     _passwd: str
 
-    def __init__(self, addr: str, passwd: str):
+    def __init__(self, addr: str, passwd: str, timeout: int = 2):
         self._socket = Socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._socket.settimeout(timeout)
         self._passwd = passwd
         addr_split = addr.split(':', 1)
         self._addr = addr_split[0]
