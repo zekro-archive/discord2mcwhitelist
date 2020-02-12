@@ -41,6 +41,20 @@ def parse_args():
     return parser.parse_args()
 
 
+def lower(arg: str) -> str:
+    return arg.lower()
+
+
+def is_verbose(argv: list) -> bool:
+    return '-v' in argv or '--verbose' in argv
+
+
+async def verbose_output(ctx: Context, argv: list, op: list):
+    if is_verbose(argv) and op:
+        await ctx.send(
+            'Verbose output:\n```{}```'.format('\n'.join(op)))
+
+
 def main():
     args = parse_args()
 
@@ -105,7 +119,7 @@ def main():
         description='Register a minecraft ID to your discord profile ' +
                     'and add it to the minecraft servers whitelist.',
         aliases=('add', 'set'))
-    async def bind(ctx: Context, mc_id: str):
+    async def bind(ctx: Context, mc_id: lower, *argv):
         dc_id, curr_mc_id = db.get_whitelist_by_mc_id(mc_id)
 
         if curr_mc_id is not None and mc_id == curr_mc_id:
@@ -120,13 +134,17 @@ def main():
 
         old_mc_id = db.set_witelist(str(ctx.message.author.id), mc_id)
 
+        vbop = []
+
         if old_mc_id is not None:
-            rcon.command('whitelist remove {}'.format(old_mc_id))
-        rcon.command('whitelist add {}'.format(mc_id))
+            vbop.append(rcon.command('whitelist remove {}'.format(old_mc_id)))
+        vbop.append(rcon.command('whitelist add {}'.format(mc_id)))
 
         await ctx.send(
             ':white_check_mark:  You are now bound to the mc ' +
             'account `{}` and added to the servers whitelist.'.format(mc_id))
+
+        await verbose_output(ctx, argv, vbop)
 
     @bind.error
     async def bind_error(ctx: Context, err):
@@ -140,19 +158,21 @@ def main():
         description='Unregisters a bound minecraft ID from your account ' +
                     'and removes you from the whitelist of the server.',
         aliases=('remove', 'unset'))
-    async def unbind(ctx: Context):
+    async def unbind(ctx: Context, *argv):
         _, mc_id = db.get_whitelist_by_discord_id(str(ctx.message.author.id))
         if mc_id is None:
             await ctx.send(':warning:  Ypur account is not bound to any ' +
                            'minecraft ID.')
             return
 
-        rcon.command('whitelist remove {}'.format(mc_id))
+        vbop = (rcon.command('whitelist remove {}'.format(mc_id)),)
         db.rem_witelist(str(ctx.message.author.id))
 
         await ctx.send(
             ':white_check_mark:  Successfully removed you from ' +
             'the servers whitelist and account is unbound.'.format(mc_id))
+
+        await verbose_output(ctx, argv, vbop)
 
     # info
 
