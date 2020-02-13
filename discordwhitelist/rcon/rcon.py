@@ -44,7 +44,7 @@ class Packet:
 
     def encode(self) -> bytes:
         data = struct.pack('<ii', self.ident, self.cmd) + \
-            self.payload.encode('ascii') + b'\x00\x00'
+            self.payload.encode('utf-8') + b'\x00\x00'
         ln = struct.pack('<i', len(data))
         return ln + data
 
@@ -58,7 +58,7 @@ class Packet:
             return (None, ln)
 
         ident, cmd = struct.unpack('<ii', data[4:12])
-        payload = data[12:-2].decode('ascii')
+        payload = data[12:-2].decode('utf-8')
 
         padding = data[-2:]
         if padding != b'\x00\x00':
