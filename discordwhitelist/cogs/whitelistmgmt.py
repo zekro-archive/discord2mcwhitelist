@@ -1,16 +1,16 @@
 from discord import Embed
 from discord.ext.commands import command, Cog, Context, MissingRequiredArgument
 from shared import verbose_output, lower, EMBED_COLOR
-from rcon import RCON
+from asyncrcon import AsyncRCON
 from database import SQLite
 
 
 class WhitelistMgmt(Cog, name='Whitelist Management'):
 
-    _rcon: RCON
+    _rcon: AsyncRCON
     _db: SQLite
 
-    def __init__(self, bot, rcon: RCON, db: SQLite):
+    def __init__(self, bot, rcon: AsyncRCON, db: SQLite):
         self.bot = bot
         self._rcon = rcon
         self._db = db
@@ -41,9 +41,9 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
             vbop = []
 
             if old_mc_id is not None:
-                vbop.append(self._rcon.command(
+                vbop.append(await self._rcon.command(
                     'whitelist remove {}'.format(old_mc_id)))
-            vbop.append(self._rcon.command('whitelist add {}'.format(mc_id)))
+            vbop.append(await self._rcon.command('whitelist add {}'.format(mc_id)))
 
             await ctx.send(
                 ':white_check_mark:  You are now bound to the mc ' +
@@ -72,7 +72,7 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
                                'minecraft ID.')
                 return
 
-            vbop = (self._rcon.command('whitelist remove {}'.format(mc_id)),)
+            vbop = (await self._rcon.command('whitelist remove {}'.format(mc_id)),)
             self._db.rem_witelist(str(ctx.message.author.id))
 
             await ctx.send(
@@ -133,5 +133,5 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
         aliases=('showwl', 'listserver'))
     async def serverwl(self, ctx: Context):
         async with ctx.typing():
-            res = self._rcon.command('whitelist list')
+            res = await self._rcon.command('whitelist list')
             await ctx.send('```{}```'.format(res))

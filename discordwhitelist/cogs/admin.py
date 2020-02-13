@@ -1,7 +1,7 @@
 from discord import Role
 from discord.ext.commands import command, check, Cog, \
     Context, MissingRequiredArgument, BadArgument, CheckFailure
-from rcon import RCON
+from asyncrcon import AsyncRCON
 from database import SQLite
 
 
@@ -13,11 +13,11 @@ def is_guild_owner() -> bool:
 
 class Admin(Cog, name='Admin'):
 
-    _rcon: RCON
+    _rcon: AsyncRCON
     _db: SQLite
     _sudo_enabled: bool
 
-    def __init__(self, bot, rcon: RCON, db: SQLite, sudo_enabled=False):
+    def __init__(self, bot, rcon: AsyncRCON, db: SQLite, sudo_enabled=False):
         self.bot = bot
         self._rcon = rcon
         self._db = db
@@ -67,6 +67,6 @@ class Admin(Cog, name='Admin'):
                 await ctx.send(':warning:  Sudo is disbaled by configuration.')
                 return
 
-            res = self._rcon.command(' '.join(cmd))
+            res = await self._rcon.command(' '.join(cmd))
             await ctx.send(
                 'Result:\n```{}```'.format(res or '[empty]'))

@@ -1,6 +1,6 @@
 import logging
 import argparse
-from rcon import RCON
+from asyncrcon import AsyncRCON
 from database import SQLite
 from discord import Member, Embed, Message
 from discord.ext import commands
@@ -50,12 +50,13 @@ def main():
         format='%(asctime)s | %(levelname)s | %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S')
 
-    rcon = RCON(args.rcon_address, args.rcon_password)
-    rcon.connect()
+    rcon = AsyncRCON(args.rcon_address, args.rcon_password)
 
     db = SQLite('database.db')
 
     bot = commands.Bot(command_prefix=args.prefix)
+
+    bot.loop.run_until_complete(rcon.open_connection())
 
     if args.allow_sudo:
         logging.warning('allow sudo is enabled! This gives acces to the ' +
@@ -96,7 +97,7 @@ def main():
     async def on_member_remove(member: Member):
         _, mc_id = db.get_whitelist_by_discord_id(str(member.id))
         if mc_id is not None:
-            rcon.command('whitelist remove {}'.format(mc_id))
+            await rcon.command('whitelist remove {}'.format(mc_id))
             db.rem_witelist(str(member.id))
 
     ################
