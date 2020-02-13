@@ -58,8 +58,8 @@ def main():
     bot = commands.Bot(command_prefix=args.prefix)
 
     if args.allow_sudo:
-        logging.warn('allow sudo is enabled! This gives acces to the ' +
-                     'RCON console directly out of the discord chat!')
+        logging.warning('allow sudo is enabled! This gives acces to the ' +
+                        'RCON console directly out of the discord chat!')
 
     ##########
     # EVENTS #

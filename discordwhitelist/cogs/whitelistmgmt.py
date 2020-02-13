@@ -23,32 +23,33 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
                     'and add it to the minecraft servers whitelist.',
         aliases=('add', 'set'))
     async def bind(self, ctx: Context, mc_id: lower, *argv):
-        dc_id, curr_mc_id = self._db.get_whitelist_by_mc_id(mc_id)
+        async with ctx.typing():
+            dc_id, curr_mc_id = self._db.get_whitelist_by_mc_id(mc_id)
 
-        if curr_mc_id is not None and mc_id == curr_mc_id:
-            await ctx.send(':warning:  This minecraft ID is already ' +
-                           'bound to your account!')
-            return
+            if curr_mc_id is not None and mc_id == curr_mc_id:
+                await ctx.send(':warning:  This minecraft ID is already ' +
+                               'bound to your account!')
+                return
 
-        if dc_id is not None and dc_id != str(ctx.message.author.id):
-            await ctx.send(':warning:  This minecraft ID is already ' +
-                           'registered by another user!')
-            return
+            if dc_id is not None and dc_id != str(ctx.message.author.id):
+                await ctx.send(':warning:  This minecraft ID is already ' +
+                               'registered by another user!')
+                return
 
-        old_mc_id = self._db.set_witelist(str(ctx.message.author.id), mc_id)
+            old_mc_id = self._db.set_witelist(str(ctx.message.author.id), mc_id)
 
-        vbop = []
+            vbop = []
 
-        if old_mc_id is not None:
-            vbop.append(self._rcon.command(
-                'whitelist remove {}'.format(old_mc_id)))
-        vbop.append(self._rcon.command('whitelist add {}'.format(mc_id)))
+            if old_mc_id is not None:
+                vbop.append(self._rcon.command(
+                    'whitelist remove {}'.format(old_mc_id)))
+            vbop.append(self._rcon.command('whitelist add {}'.format(mc_id)))
 
-        await ctx.send(
-            ':white_check_mark:  You are now bound to the mc ' +
-            'account `{}` and added to the servers whitelist.'.format(mc_id))
+            await ctx.send(
+                ':white_check_mark:  You are now bound to the mc ' +
+                'account `{}` and added to the servers whitelist.'.format(mc_id))
 
-        await verbose_output(ctx, argv, vbop)
+            await verbose_output(ctx, argv, vbop)
 
     @bind.error
     async def bind_error(self, ctx: Context, err):
@@ -63,21 +64,22 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
                     'and removes you from the whitelist of the server.',
         aliases=('remove', 'unset'))
     async def unbind(self, ctx: Context, *argv):
-        _, mc_id = self._db.get_whitelist_by_discord_id(
-            str(ctx.message.author.id))
-        if mc_id is None:
-            await ctx.send(':warning:  Ypur account is not bound to any ' +
-                           'minecraft ID.')
-            return
+        async with ctx.typing():
+            _, mc_id = self._db.get_whitelist_by_discord_id(
+                str(ctx.message.author.id))
+            if mc_id is None:
+                await ctx.send(':warning:  Ypur account is not bound to any ' +
+                               'minecraft ID.')
+                return
 
-        vbop = (self._rcon.command('whitelist remove {}'.format(mc_id)),)
-        self._db.rem_witelist(str(ctx.message.author.id))
+            vbop = (self._rcon.command('whitelist remove {}'.format(mc_id)),)
+            self._db.rem_witelist(str(ctx.message.author.id))
 
-        await ctx.send(
-            ':white_check_mark:  Successfully removed you from ' +
-            'the servers whitelist and account is unbound.'.format(mc_id))
+            await ctx.send(
+                ':white_check_mark:  Successfully removed you from ' +
+                'the servers whitelist and account is unbound.'.format(mc_id))
 
-        await verbose_output(ctx, argv, vbop)
+            await verbose_output(ctx, argv, vbop)
 
     # info
 
@@ -86,16 +88,17 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
         description='Displays the currently bound minecraft ID.',
         aliases=('bound', 'display'))
     async def info(self, ctx: Context):
-        _, mc_id = self._db.get_whitelist_by_discord_id(
-            str(ctx.message.author.id))
-        if mc_id is None:
-            await ctx.send(':warning:  Ypur account is not bound to any ' +
-                           'minecraft ID.')
-            return
+        async with ctx.typing():
+            _, mc_id = self._db.get_whitelist_by_discord_id(
+                str(ctx.message.author.id))
+            if mc_id is None:
+                await ctx.send(':warning:  Ypur account is not bound to any ' +
+                               'minecraft ID.')
+                return
 
-        await ctx.send(
-            ':information_source:  Your account is currently bound to the ' +
-            'minecraft ID `{}`.'.format(mc_id))
+            await ctx.send(
+                ':information_source:  Your account is currently bound to the ' +
+                'minecraft ID `{}`.'.format(mc_id))
 
     # list
 
@@ -107,18 +110,19 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
     async def list_bindings(self, ctx: Context):
         MAX_LEN = 40
 
-        wl = self._db.get_whitelist()
-        em = Embed()
-        em.title = 'Whitelist'
-        em.color = EMBED_COLOR
-        em.description = ''
-        for dc_id, mc_id in list(wl.items())[:MAX_LEN]:
-            em.description += '<@{}> - `{}`\n'.format(dc_id, mc_id)
+        async with ctx.typing():
+            wl = self._db.get_whitelist()
+            em = Embed()
+            em.title = 'Whitelist'
+            em.color = EMBED_COLOR
+            em.description = ''
+            for dc_id, mc_id in list(wl.items())[:MAX_LEN]:
+                em.description += '<@{}> - `{}`\n'.format(dc_id, mc_id)
 
-        if len(wl) > MAX_LEN:
-            em.description += '*and {} more...*'.format(len(wl) - MAX_LEN)
+            if len(wl) > MAX_LEN:
+                em.description += '*and {} more...*'.format(len(wl) - MAX_LEN)
 
-        await ctx.send(embed=em)
+            await ctx.send(embed=em)
 
     # serverwl
 
@@ -128,5 +132,6 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
                     '\'whitelist list\' command.',
         aliases=('showwl', 'listserver'))
     async def serverwl(self, ctx: Context):
-        res = self._rcon.command('whitelist list')
-        await ctx.send('```{}```'.format(res))
+        async with ctx.typing():
+            res = self._rcon.command('whitelist list')
+            await ctx.send('```{}```'.format(res))
