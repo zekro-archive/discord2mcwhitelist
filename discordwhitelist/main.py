@@ -38,6 +38,9 @@ def parse_args():
     parser.add_argument(
         '--log-level', '-l', default=20, type=int,
         help='Set log level of the default logger (def: 20)')
+    parser.add_argument(
+        '--db-file', '-db', default='database.db', type=str,
+        help='Set database file location (def: database.db)')
 
     return parser.parse_args()
 
@@ -52,7 +55,7 @@ def main():
 
     rcon = AsyncRCON(args.rcon_address, args.rcon_password)
 
-    db = SQLite('database.db')
+    db = SQLite(args.db_file)
 
     bot = commands.Bot(command_prefix=args.prefix)
 
@@ -98,6 +101,7 @@ def main():
         _, mc_id = db.get_whitelist_by_discord_id(str(member.id))
         if mc_id is not None:
             await rcon.command('whitelist remove {}'.format(mc_id))
+            await rcon.command('whitelist reload')
             db.rem_witelist(str(member.id))
 
     ################
