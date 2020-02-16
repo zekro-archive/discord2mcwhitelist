@@ -1,3 +1,4 @@
+import asyncio
 from discord import Embed
 from discord.ext.commands import command, Cog, Context, MissingRequiredArgument
 from shared import verbose_output, lower, EMBED_COLOR
@@ -43,7 +44,9 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
             if old_mc_id is not None:
                 vbop.append(await self._rcon.command(
                     'whitelist remove {}'.format(old_mc_id)))
+                await asyncio.sleep(0.5)
             vbop.append(await self._rcon.command('whitelist add {}'.format(mc_id)))
+            await asyncio.sleep(0.5)
             vbop.append(await self._rcon.command('whitelist reload'))
 
             await ctx.send(
@@ -75,6 +78,7 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
 
             vbop = []
             vbop.append(await self._rcon.command('whitelist remove {}'.format(mc_id)))
+            await asyncio.sleep(0.5)
             vbop.append(await self._rcon.command('whitelist reload'))
             self._db.rem_witelist(str(ctx.message.author.id))
 

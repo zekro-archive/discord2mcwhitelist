@@ -1,4 +1,5 @@
 import logging
+import asyncio
 import argparse
 from asyncrcon import AsyncRCON
 from database import SQLite
@@ -101,6 +102,7 @@ def main():
         _, mc_id = db.get_whitelist_by_discord_id(str(member.id))
         if mc_id is not None:
             await rcon.command('whitelist remove {}'.format(mc_id))
+            await asyncio.sleep(0.5)
             await rcon.command('whitelist reload')
             db.rem_witelist(str(member.id))
 
