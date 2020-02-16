@@ -72,7 +72,7 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
             _, mc_id = self._db.get_whitelist_by_discord_id(
                 str(ctx.message.author.id))
             if mc_id is None:
-                await ctx.send(':warning:  Ypur account is not bound to any ' +
+                await ctx.send(':warning:  Your account is not bound to any ' +
                                'minecraft ID.')
                 return
 

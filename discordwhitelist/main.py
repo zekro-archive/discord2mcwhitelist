@@ -35,6 +35,9 @@ def parse_args():
     rcon.add_argument(
         '--rcon-password', '-rpw', required=True, type=str,
         help='The password of the RCON server')
+    rcon.add_argument(
+        '--rcon-encoding', default='utf-8', type=str,
+        help='The encoding to be used for RCON payloads')
 
     parser.add_argument(
         '--log-level', '-l', default=20, type=int,
@@ -54,7 +57,8 @@ def main():
         format='%(asctime)s | %(levelname)s | %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S')
 
-    rcon = AsyncRCON(args.rcon_address, args.rcon_password)
+    rcon = AsyncRCON(args.rcon_address, args.rcon_password,
+                     encoding=args.rcon_encoding)
 
     db = SQLite(args.db_file)
 
