@@ -44,6 +44,7 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
                 vbop.append(await self._rcon.command(
                     'whitelist remove {}'.format(old_mc_id)))
             vbop.append(await self._rcon.command('whitelist add {}'.format(mc_id)))
+            vbop.append(await self._rcon.command('whitelist reload'))
 
             await ctx.send(
                 ':white_check_mark:  You are now bound to the mc ' +
@@ -72,7 +73,9 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
                                'minecraft ID.')
                 return
 
-            vbop = (await self._rcon.command('whitelist remove {}'.format(mc_id)),)
+            vbop = []
+            vbop.append(await self._rcon.command('whitelist remove {}'.format(mc_id)))
+            vbop.append(await self._rcon.command('whitelist reload'))
             self._db.rem_witelist(str(ctx.message.author.id))
 
             await ctx.send(
