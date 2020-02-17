@@ -24,7 +24,9 @@ class SQLite:
             'CREATE TABLE IF NOT EXISTS `guilds` (' +
             '  `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,' +
             '  `guildId` VARCHAR(22),' +
-            '  `adminRoleId` VARCHAR(32)' +
+            '  `adminRoleId` VARCHAR(32),' +
+            '  `statusChannelId` VARCHAR(32),' +
+            '  `statusMessageId` VARCHAR(32)' +
             ');')
         self._conn.commit()
 
@@ -97,5 +99,53 @@ class SQLite:
             self._conn.execute(
                 'UPDATE `guilds` SET `adminRoleId` = ? WHERE ' +
                 '`guildId` = ?;', (role_id, guild_id))
+
+        self._conn.commit()
+
+    def get_status_channel(self, guild_id: str) -> str:
+        res = self._conn.execute(
+            'SELECT `statusChannelId` from `guilds` WHERE ' +
+            '`guildId` = ?;', (guild_id,))
+        chan = res.fetchone()
+        return chan[0] if chan else None
+
+    def set_status_channel(self, guild_id: str, channel_id: str):
+        res = self._conn.execute(
+            'SELECT `guildId` from `guilds` WHERE ' +
+            '`guildId` = ?;', (guild_id,))
+        res_guild_id = res.fetchone()
+
+        if res_guild_id is None:
+            self._conn.execute(
+                'INSERT INTO `guilds` (`guildId`, `statusChannelId`) VALUES ' +
+                '(?, ?);', (guild_id, channel_id))
+        else:
+            self._conn.execute(
+                'UPDATE `guilds` SET `statusChannelId` = ? WHERE ' +
+                '`guildId` = ?;', (channel_id, guild_id))
+
+        self._conn.commit()
+
+    def get_status_message(self, guild_id: str) -> str:
+        res = self._conn.execute(
+            'SELECT `statusMessageId` from `guilds` WHERE ' +
+            '`guildId` = ?;', (guild_id,))
+        msg = res.fetchone()
+        return msg[0] if msg else None
+
+    def set_status_message(self, guild_id: str, message_id: str):
+        res = self._conn.execute(
+            'SELECT `guildId` from `guilds` WHERE ' +
+            '`guildId` = ?;', (guild_id,))
+        res_guild_id = res.fetchone()
+
+        if res_guild_id is None:
+            self._conn.execute(
+                'INSERT INTO `guilds` (`guildId`, `statusMessageId`) VALUES ' +
+                '(?, ?);', (guild_id, message_id))
+        else:
+            self._conn.execute(
+                'UPDATE `guilds` SET `statusMessageId` = ? WHERE ' +
+                '`guildId` = ?;', (message_id, guild_id))
 
         self._conn.commit()

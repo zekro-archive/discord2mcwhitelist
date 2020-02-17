@@ -1,3 +1,4 @@
+import re
 import logging
 import asyncio
 import argparse
@@ -51,6 +52,91 @@ def parse_args():
     return parser.parse_args()
 
 
+def get_status_message(matches: list, db: SQLite) -> discord.Embed:
+    matches = [m for m in matches]
+
+    em = discord.Embed()
+    em.color = EMBED_COLOR
+    em.title = 'Server Status'
+    em.description = '**{}** / **{}** players are online.'.format(
+        matches[0], matches[1])
+
+    player_list = []
+    name_map = dict((v, k) for k, v in db.get_whitelist().items())
+
+    matches[2] = 'zekrotja, skillkiller'
+
+    if len(matches) >= 3 and matches[2]:
+        player_names = matches[2].split(',')
+        for name in player_names:
+            name = name.strip().lower()
+            dc_id = name_map.get(name)
+            d_name = '`{}`'.format(name)
+            if dc_id:
+                d_name += ' (<@{}>)'.format(dc_id)
+            player_list.append(d_name)
+    else:
+        player_list = ['*no players online*']
+
+    em.add_field(name='Online Players', value='\n'.join(player_list), inline=False)
+
+    return em
+
+
+async def fetch_server_info(bot: commands.Bot, rcon: AsyncRCON, db: SQLite):
+    await bot.wait_until_ready()
+
+    is_first = True
+    status_messages = {}
+
+    while not bot.is_closed():
+        if not is_first:
+            await asyncio.sleep(10)
+        else:
+            is_first = False
+
+        try:
+            res = await rcon.command('list')
+        except Exception as e:
+            logging.error(e)
+            return
+
+        match = re.match(r'^There are (\d+)\/(\d+) players online:\s?(.*)', res, re.MULTILINE | re.S)
+        match_groups = match.groups()
+
+        if len(match_groups) < 2:
+            return
+
+        online = match_groups[0]
+        slots = match_groups[1]
+        activity = discord.Game('{}/{} online'.format(online, slots))
+        await bot.change_presence(activity=activity, status=discord.Status.online)
+
+        for guild in bot.guilds:
+            chan_id = db.get_status_channel(guild.id)
+            if not chan_id:
+                continue
+
+            chan: discord.TextChannel = guild.get_channel(int(chan_id))
+            if not chan:
+                db.set_status_channel(guild.id, '')
+                continue
+
+            status_msg = status_messages.get(guild.id)
+            if not status_msg:
+                msg_id = db.get_status_message(guild.id)
+                if msg_id:
+                    status_msg = await chan.fetch_message(msg_id)
+
+            if not status_msg:
+                status_msg = await chan.send(embed=get_status_message(match_groups, db))
+                db.set_status_message(guild.id, status_msg.id)
+            else:
+                await status_msg.edit(embed=get_status_message(match_groups, db))
+
+            status_messages[guild.id] = status_msg
+
+
 def main():
     args = parse_args()
 
@@ -67,6 +153,7 @@ def main():
     bot = commands.Bot(command_prefix=args.prefix)
 
     bot.loop.run_until_complete(rcon.open_connection())
+    bot.loop.create_task(fetch_server_info(bot, rcon, db))
 
     if args.allow_sudo:
         logging.warning('allow sudo is enabled! This gives acces to the ' +
@@ -125,7 +212,7 @@ def main():
 
     @bot.event
     async def on_command_error(ctx: commands.Context, err):
-        ctx.send(':warning:  Command raised an exception: ```{}```'.format(err))
+        await ctx.send(':warning:  Command raised an exception: ```{}```'.format(err))
 
     ################
     # REGISTRATION #

@@ -1,5 +1,6 @@
 import sys
-from discord import Role
+from typing import Optional
+from discord import Role, TextChannel
 from discord.ext.commands import command, check, Cog, \
     Context, MissingRequiredArgument, BadArgument, CheckFailure
 from asyncrcon import AsyncRCON
@@ -77,10 +78,26 @@ class Admin(Cog, name='Admin'):
     @command(
         brief='Restart the bot',
         description='Restart the bot instance - this only works if the script auto-restarts!')
-    async def restart(self, ctx: Context, *cmd):
+    async def restart(self, ctx: Context):
         if not await self._check_admin(ctx):
             return
 
         await ctx.send(':repeat:  Restarting...')
         await ctx.bot.close()
         sys.exit(1)
+
+    # restart
+
+    @command(
+        brief='Setup tatus channel',
+        description='Set up the channel where the server status message will be spawned')
+    async def statuschan(self, ctx: Context, channel: Optional[TextChannel] = None):
+        if not await self._check_admin(ctx):
+            return
+
+        if channel is None:
+            channel = ctx.message.channel
+
+        self._db.set_status_channel(ctx.guild.id, channel.id)
+
+        await ctx.send(':white_check_mark:  Set <#{}> as status channel.'.format(channel.id))
