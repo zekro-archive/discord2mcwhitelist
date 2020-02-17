@@ -23,7 +23,7 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
         description='Register a minecraft ID to your discord profile ' +
                     'and add it to the minecraft servers whitelist.',
         aliases=('add', 'set'))
-    async def bind(self, ctx: Context, mc_id: str, *argv):
+    async def bind(self, ctx: Context, mc_id: lower, *argv):
         async with ctx.typing():
             dc_id, curr_mc_id = self._db.get_whitelist_by_mc_id(mc_id)
 
