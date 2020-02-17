@@ -103,10 +103,12 @@ def main():
 
             em.add_field(
                 name='GitHub',
-                value='https://github.com/zekroTJA/discord2mcwhitelist')
+                value='https://github.com/zekroTJA/discord2mcwhitelist',
+                inline=False)
             em.add_field(
                 name='Package Versions',
-                value='\n'.join(versions))
+                value='\n'.join(versions),
+                inline=False)
             em.set_footer(
                 text='© 2020 zekro.de')
             await msg.channel.send(embed=em)
@@ -120,6 +122,10 @@ def main():
             await asyncio.sleep(0.5)
             await rcon.command('whitelist reload')
             db.rem_witelist(str(member.id))
+
+    @bot.event
+    async def on_command_error(ctx: commands.Context, err):
+        ctx.send(':warning:  Command raised an exception: ```{}```'.format(err))
 
     ################
     # REGISTRATION #
