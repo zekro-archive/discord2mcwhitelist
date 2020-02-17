@@ -1,3 +1,4 @@
+import asyncio
 from discord import Embed
 from discord.ext.commands import command, Cog, Context, MissingRequiredArgument
 from shared import verbose_output, lower, EMBED_COLOR
@@ -22,7 +23,7 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
         description='Register a minecraft ID to your discord profile ' +
                     'and add it to the minecraft servers whitelist.',
         aliases=('add', 'set'))
-    async def bind(self, ctx: Context, mc_id: lower, *argv):
+    async def bind(self, ctx: Context, mc_id: str, *argv):
         async with ctx.typing():
             dc_id, curr_mc_id = self._db.get_whitelist_by_mc_id(mc_id)
 
@@ -43,7 +44,10 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
             if old_mc_id is not None:
                 vbop.append(await self._rcon.command(
                     'whitelist remove {}'.format(old_mc_id)))
+                await asyncio.sleep(0.5)
             vbop.append(await self._rcon.command('whitelist add {}'.format(mc_id)))
+            await asyncio.sleep(0.5)
+            vbop.append(await self._rcon.command('whitelist reload'))
 
             await ctx.send(
                 ':white_check_mark:  You are now bound to the mc ' +
@@ -68,11 +72,14 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
             _, mc_id = self._db.get_whitelist_by_discord_id(
                 str(ctx.message.author.id))
             if mc_id is None:
-                await ctx.send(':warning:  Ypur account is not bound to any ' +
+                await ctx.send(':warning:  Your account is not bound to any ' +
                                'minecraft ID.')
                 return
 
-            vbop = (await self._rcon.command('whitelist remove {}'.format(mc_id)),)
+            vbop = []
+            vbop.append(await self._rcon.command('whitelist remove {}'.format(mc_id)))
+            await asyncio.sleep(0.5)
+            vbop.append(await self._rcon.command('whitelist reload'))
             self._db.rem_witelist(str(ctx.message.author.id))
 
             await ctx.send(

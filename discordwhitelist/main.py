@@ -1,4 +1,5 @@
 import logging
+import asyncio
 import argparse
 from asyncrcon import AsyncRCON
 from database import SQLite
@@ -34,10 +35,16 @@ def parse_args():
     rcon.add_argument(
         '--rcon-password', '-rpw', required=True, type=str,
         help='The password of the RCON server')
+    rcon.add_argument(
+        '--rcon-encoding', default='utf-8', type=str,
+        help='The encoding to be used for RCON payloads')
 
     parser.add_argument(
         '--log-level', '-l', default=20, type=int,
         help='Set log level of the default logger (def: 20)')
+    parser.add_argument(
+        '--db-file', '-db', default='database.db', type=str,
+        help='Set database file location (def: database.db)')
 
     return parser.parse_args()
 
@@ -50,9 +57,10 @@ def main():
         format='%(asctime)s | %(levelname)s | %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S')
 
-    rcon = AsyncRCON(args.rcon_address, args.rcon_password)
+    rcon = AsyncRCON(args.rcon_address, args.rcon_password,
+                     encoding=args.rcon_encoding)
 
-    db = SQLite('database.db')
+    db = SQLite(args.db_file)
 
     bot = commands.Bot(command_prefix=args.prefix)
 
@@ -98,6 +106,8 @@ def main():
         _, mc_id = db.get_whitelist_by_discord_id(str(member.id))
         if mc_id is not None:
             await rcon.command('whitelist remove {}'.format(mc_id))
+            await asyncio.sleep(0.5)
+            await rcon.command('whitelist reload')
             db.rem_witelist(str(member.id))
 
     ################
