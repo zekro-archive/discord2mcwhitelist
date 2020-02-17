@@ -1,3 +1,4 @@
+import sys
 from discord import Role
 from discord.ext.commands import command, check, Cog, \
     Context, MissingRequiredArgument, BadArgument, CheckFailure
@@ -70,3 +71,16 @@ class Admin(Cog, name='Admin'):
             res = await self._rcon.command(' '.join(cmd))
             await ctx.send(
                 'Result:\n```{}```'.format(res or '[empty]'))
+
+    # restart
+
+    @command(
+        brief='Restart the bot',
+        description='Restart the bot instance - this only works if the script auto-restarts!')
+    async def restart(self, ctx: Context, *cmd):
+        if not await self._check_admin(ctx):
+            return
+
+        await ctx.send(':repeat:  Restarting...')
+        await ctx.bot.close()
+        sys.exit(1)
