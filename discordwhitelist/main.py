@@ -53,8 +53,6 @@ def parse_args():
 
 
 def get_status_message(matches: list, db: SQLite) -> discord.Embed:
-    matches = [m for m in matches]
-
     em = discord.Embed()
     em.color = EMBED_COLOR
     em.title = 'Server Status'
@@ -63,8 +61,6 @@ def get_status_message(matches: list, db: SQLite) -> discord.Embed:
 
     player_list = []
     name_map = dict((v, k) for k, v in db.get_whitelist().items())
-
-    matches[2] = 'zekrotja, skillkiller'
 
     if len(matches) >= 3 and matches[2]:
         player_names = matches[2].split(',')
