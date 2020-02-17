@@ -1,6 +1,8 @@
 import logging
 import asyncio
 import argparse
+import discord
+import asyncrcon
 from asyncrcon import AsyncRCON
 from database import SQLite
 from discord import Member, Embed, Message
@@ -93,9 +95,18 @@ def main():
                               'Just enter `{}help` in the chat for more ' +
                               'information on how to use ' +
                               'me.').format(args.prefix)
+
+            versions = [
+                '- discord.py: {}'.format(discord.__version__),
+                '- asyncrcon: {}'.format(asyncrcon.__version__),
+            ]
+
             em.add_field(
                 name='GitHub',
                 value='https://github.com/zekroTJA/discord2mcwhitelist')
+            em.add_field(
+                name='Package Versions',
+                value='\n'.join(versions))
             em.set_footer(
                 text='© 2020 zekro.de')
             await msg.channel.send(embed=em)
