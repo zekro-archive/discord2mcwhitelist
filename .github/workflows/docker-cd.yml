@@ -1,0 +1,24 @@
+name: Docker CD
+
+on:
+  - push
+
+jobs:
+
+  build:
+
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build Docker Image
+        run: |
+          docker build . -t zekro/discord2mcwhitelist:latest
+
+      - name: Publish Docker Image
+        run: |
+          docker login -u zekro -p ${{ secrets.DOCKER_PASSWORD }}
+          docker push zekro/discord2mcwhitelist:latest
