@@ -93,44 +93,45 @@ async def fetch_server_info(bot: commands.Bot, rcon: AsyncRCON, db: SQLite):
 
         try:
             res = await rcon.command('list')
+
+            match = re.match(r'^There are (\d+)\/(\d+) players online:\s?(.*)', res, re.MULTILINE | re.S)
+            match_groups = match.groups()
+
+            if len(match_groups) < 2:
+                continue
+
+            online = match_groups[0]
+            slots = match_groups[1]
+            activity = discord.Game('{}/{} online'.format(online, slots))
+            await bot.change_presence(activity=activity, status=discord.Status.online)
+
+            for guild in bot.guilds:
+                chan_id = db.get_status_channel(guild.id)
+                if not chan_id:
+                    continue
+
+                chan: discord.TextChannel = guild.get_channel(int(chan_id))
+                if not chan:
+                    db.set_status_channel(guild.id, '')
+                    continue
+
+                status_msg = status_messages.get(guild.id)
+                if not status_msg:
+                    msg_id = db.get_status_message(guild.id)
+                    if msg_id:
+                        status_msg = await chan.fetch_message(msg_id)
+
+                if not status_msg:
+                    status_msg = await chan.send(embed=get_status_message(match_groups, db))
+                    db.set_status_message(guild.id, status_msg.id)
+                else:
+                    await status_msg.edit(embed=get_status_message(match_groups, db))
+
+                status_messages[guild.id] = status_msg
+
         except Exception as e:
             logging.error(e)
-            return
-
-        match = re.match(r'^There are (\d+)\/(\d+) players online:\s?(.*)', res, re.MULTILINE | re.S)
-        match_groups = match.groups()
-
-        if len(match_groups) < 2:
-            return
-
-        online = match_groups[0]
-        slots = match_groups[1]
-        activity = discord.Game('{}/{} online'.format(online, slots))
-        await bot.change_presence(activity=activity, status=discord.Status.online)
-
-        for guild in bot.guilds:
-            chan_id = db.get_status_channel(guild.id)
-            if not chan_id:
-                continue
-
-            chan: discord.TextChannel = guild.get_channel(int(chan_id))
-            if not chan:
-                db.set_status_channel(guild.id, '')
-                continue
-
-            status_msg = status_messages.get(guild.id)
-            if not status_msg:
-                msg_id = db.get_status_message(guild.id)
-                if msg_id:
-                    status_msg = await chan.fetch_message(msg_id)
-
-            if not status_msg:
-                status_msg = await chan.send(embed=get_status_message(match_groups, db))
-                db.set_status_message(guild.id, status_msg.id)
-            else:
-                await status_msg.edit(embed=get_status_message(match_groups, db))
-
-            status_messages[guild.id] = status_msg
+            continue
 
 
 def main():
