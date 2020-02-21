@@ -1,6 +1,8 @@
 # discord2mcwhitelist
 
 Leight Discord bot which binds Discord Accounts to Minecraft User IDs (Usernames) and manages the Minecraft Servers whitelist depending on this via RCON, so no server side mods are required.
+
+> If you are interested in the RCON implementation, take a look [**here**](https://github.com/zekroTJA/asyncrcon). This project is using the package [`asyncrcon`](https://pypi.org/project/asyncrcon) for that.
   
 ## Installation and Usage
 
