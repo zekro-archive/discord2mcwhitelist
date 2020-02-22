@@ -1,6 +1,7 @@
 import sys
+import asyncio
 from typing import Optional
-from discord import Role, TextChannel
+from discord import Role, TextChannel, Message
 from discord.ext.commands import command, check, Cog, \
     Context, MissingRequiredArgument, BadArgument, CheckFailure
 from asyncrcon import AsyncRCON
@@ -127,3 +128,28 @@ class Admin(Cog, name='Admin'):
         self._db.set_disabled(ctx.guild.id, False)
 
         await ctx.send(':white_check_mark:  Whitelist binding is now **enabled**.')
+
+    # sync
+
+    @command(
+        brief='Sync server whitelist',
+        description='Sync the database mapped whitelist to the servers whitelist')
+    async def sync(self, ctx: Context):
+        if not await self._check_admin(ctx):
+            return
+
+        whitelist_map = self._db.get_whitelist()
+        synced = 0
+        to_sync = len(whitelist_map)
+
+        msg: Message = await ctx.send(':clock1:  Synced {} of {} users...'.format(synced, to_sync))
+
+        for _, mc_id in whitelist_map.items():
+            await self._rcon.command('whitelist add {}'.format(mc_id))
+            synced += 1
+            await msg.edit(content=':clock1:  Synced {} of {} users...'.format(synced, to_sync))
+            await asyncio.sleep(0.5)
+
+        await self._rcon.command('whitelist reload')
+
+        await msg.edit(content=':white_check_mark:  Synced {} of {} users sccessfully.'.format(synced, to_sync))

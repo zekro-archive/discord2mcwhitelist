@@ -95,6 +95,7 @@ async def fetch_server_info(bot: commands.Bot, rcon: AsyncRCON, db: SQLite):
             res = await rcon.command('list')
 
             match = re.match(r'^There are (\d+)\/(\d+) players online:\s?(.*)', res, re.MULTILINE | re.S)
+
             match_groups = match.groups()
 
             if len(match_groups) < 2:

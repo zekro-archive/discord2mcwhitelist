@@ -25,10 +25,6 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
         aliases=('add', 'set'))
     async def bind(self, ctx: Context, mc_id: lower, *argv):
         async with ctx.typing():
-            if self._db.get_disabled(ctx.guild.id):
-                await ctx.send(':warning:  Whitelist binding is currently disabled.')
-                return
-
             dc_id, curr_mc_id = self._db.get_whitelist_by_mc_id(mc_id)
 
             if curr_mc_id is not None and mc_id == curr_mc_id:
@@ -49,9 +45,24 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
                 vbop.append(await self._rcon.command(
                     'whitelist remove {}'.format(old_mc_id)))
                 await asyncio.sleep(0.5)
-            vbop.append(await self._rcon.command('whitelist add {}'.format(mc_id)))
+
+            wl_disabled = self._db.get_disabled(ctx.guild.id)
+
+            if not wl_disabled:
+                vbop.append(await self._rcon.command('whitelist add {}'.format(mc_id)))
+
             await asyncio.sleep(0.5)
             vbop.append(await self._rcon.command('whitelist reload'))
+
+            if wl_disabled:
+                await ctx.send(
+                    ':white_check_mark:  You are now bound to the mc ' +
+                    'account `{}` and added to the servers whitelist.'.format(mc_id))
+                await ctx.send(
+                    ':warning:  Whitelist binding is currently disabled. ' +
+                    'So you will not be able to join the server until it is synced with ' +
+                    'its whitelist manually.')
+                return
 
             await ctx.send(
                 ':white_check_mark:  You are now bound to the mc ' +
