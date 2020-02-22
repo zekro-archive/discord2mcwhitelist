@@ -86,10 +86,10 @@ class Admin(Cog, name='Admin'):
         await ctx.bot.close()
         sys.exit(1)
 
-    # restart
+    # statuschan
 
     @command(
-        brief='Setup tatus channel',
+        brief='Setup status channel',
         description='Set up the channel where the server status message will be spawned')
     async def statuschan(self, ctx: Context, channel: Optional[TextChannel] = None):
         if not await self._check_admin(ctx):
@@ -101,3 +101,29 @@ class Admin(Cog, name='Admin'):
         self._db.set_status_channel(ctx.guild.id, channel.id)
 
         await ctx.send(':white_check_mark:  Set <#{}> as status channel.'.format(channel.id))
+
+    # disable
+
+    @command(
+        brief='Disable whitelist binding',
+        description='Disable whitelist binding for this guild')
+    async def disable(self, ctx: Context):
+        if not await self._check_admin(ctx):
+            return
+
+        self._db.set_disabled(ctx.guild.id, True)
+
+        await ctx.send(':white_check_mark:  Whitelist binding is now **disabled**.')
+
+    # enable
+
+    @command(
+        brief='Enable whitelist binding',
+        description='Enable whitelist binding for this guild')
+    async def enable(self, ctx: Context):
+        if not await self._check_admin(ctx):
+            return
+
+        self._db.set_disabled(ctx.guild.id, False)
+
+        await ctx.send(':white_check_mark:  Whitelist binding is now **enabled**.')

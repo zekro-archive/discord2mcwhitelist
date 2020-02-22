@@ -25,6 +25,10 @@ class WhitelistMgmt(Cog, name='Whitelist Management'):
         aliases=('add', 'set'))
     async def bind(self, ctx: Context, mc_id: lower, *argv):
         async with ctx.typing():
+            if self._db.get_disabled(ctx.guild.id):
+                await ctx.send(':warning:  Whitelist binding is currently disabled.')
+                return
+
             dc_id, curr_mc_id = self._db.get_whitelist_by_mc_id(mc_id)
 
             if curr_mc_id is not None and mc_id == curr_mc_id:

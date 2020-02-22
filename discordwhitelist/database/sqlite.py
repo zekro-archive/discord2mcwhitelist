@@ -26,7 +26,8 @@ class SQLite:
             '  `guildId` VARCHAR(22),' +
             '  `adminRoleId` VARCHAR(32),' +
             '  `statusChannelId` VARCHAR(32),' +
-            '  `statusMessageId` VARCHAR(32)' +
+            '  `statusMessageId` VARCHAR(32),' +
+            '  `disabled` BOOLEAN' +
             ');')
         self._conn.commit()
 
@@ -147,5 +148,29 @@ class SQLite:
             self._conn.execute(
                 'UPDATE `guilds` SET `statusMessageId` = ? WHERE ' +
                 '`guildId` = ?;', (message_id, guild_id))
+
+        self._conn.commit()
+
+    def get_disabled(self, guild_id: str) -> bool:
+        res = self._conn.execute(
+            'SELECT `disabled` from `guilds` WHERE ' +
+            '`guildId` = ?;', (guild_id,))
+        state = res.fetchone()
+        return state[0] if state else False
+
+    def set_disabled(self, guild_id: str, disabled: bool):
+        res = self._conn.execute(
+            'SELECT `guildId` from `guilds` WHERE ' +
+            '`guildId` = ?;', (guild_id,))
+        res_guild_id = res.fetchone()
+
+        if res_guild_id is None:
+            self._conn.execute(
+                'INSERT INTO `guilds` (`guildId`, `disabled`) VALUES ' +
+                '(?, ?);', (guild_id, disabled))
+        else:
+            self._conn.execute(
+                'UPDATE `guilds` SET `disabled` = ? WHERE ' +
+                '`guildId` = ?;', (disabled, guild_id))
 
         self._conn.commit()
