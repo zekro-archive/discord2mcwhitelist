@@ -16,3 +16,4 @@ async def verbose_output(ctx: Context, argv: list, op: list):
     if is_verbose(argv) and op:
         await ctx.send(
             'Verbose output:\n```{}```'.format('\n'.join(op)))
+

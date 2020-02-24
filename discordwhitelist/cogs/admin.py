@@ -1,5 +1,6 @@
 import sys
 import asyncio
+import logging
 from typing import Optional
 from discord import Role, TextChannel, Message
 from discord.ext.commands import command, check, Cog, \
@@ -144,12 +145,49 @@ class Admin(Cog, name='Admin'):
 
         msg: Message = await ctx.send(':clock1:  Synced {} of {} users...'.format(synced, to_sync))
 
-        for _, mc_id in whitelist_map.items():
-            await self._rcon.command('whitelist add {}'.format(mc_id))
-            synced += 1
-            await msg.edit(content=':clock1:  Synced {} of {} users...'.format(synced, to_sync))
+        map_tpls = list(whitelist_map.items())
+
+        while synced < to_sync:
             await asyncio.sleep(0.5)
+            try:
+                await self._rcon.command('whitelist add {}'.format(map_tpls[synced][1]))
+                synced += 1
+            except Exception as e:
+                logging.error('Failed syncing: {}'.format(e))
+                continue
+            await msg.edit(content=':clock1:  Synced {} of {} users...'.format(synced, to_sync))
 
         await self._rcon.command('whitelist reload')
 
         await msg.edit(content=':white_check_mark:  Synced {} of {} users sccessfully.'.format(synced, to_sync))
+
+    # purge
+
+    @command(
+        brief='Purge server whitelist',
+        description='Sync the database mapped whitelist to the servers whitelist')
+    async def purge(self, ctx: Context):
+        if not await self._check_admin(ctx):
+            return
+
+        whitelist_map = self._db.get_whitelist()
+        synced = 0
+        to_sync = len(whitelist_map)
+
+        msg: Message = await ctx.send(':clock1:  Purged {} of {} users...'.format(synced, to_sync))
+
+        map_tpls = list(whitelist_map.items())
+
+        while synced < to_sync:
+            await asyncio.sleep(0.5)
+            try:
+                await self._rcon.command('whitelist remove {}'.format(map_tpls[synced][1]))
+                synced += 1
+            except Exception as e:
+                logging.error('Failed syncing: {}'.format(e))
+                continue
+            await msg.edit(content=':clock1:  Purged {} of {} users...'.format(synced, to_sync))
+
+        await self._rcon.command('whitelist reload')
+
+        await msg.edit(content=':white_check_mark:  Purged {} of {} users sccessfully.'.format(synced, to_sync))
