@@ -41,6 +41,9 @@ def parse_args():
     rcon.add_argument(
         '--rcon-encoding', default='utf-8', type=str,
         help='The encoding to be used for RCON payloads')
+    rcon.add_argument(
+        '--rcon-fetch-freq', default=30, type=int,
+        help='The interval in seconds in which the server stats will be polled')
 
     parser.add_argument(
         '--log-level', '-l', default=20, type=int,
@@ -79,7 +82,7 @@ def get_status_message(matches: list, db: SQLite) -> discord.Embed:
     return em
 
 
-async def fetch_server_info(bot: commands.Bot, rcon: AsyncRCON, db: SQLite):
+async def fetch_server_info(bot: commands.Bot, rcon: AsyncRCON, db: SQLite, freq: int):
     await bot.wait_until_ready()
 
     is_first = True
@@ -87,7 +90,7 @@ async def fetch_server_info(bot: commands.Bot, rcon: AsyncRCON, db: SQLite):
 
     while not bot.is_closed():
         if not is_first:
-            await asyncio.sleep(10)
+            await asyncio.sleep(freq)
         else:
             is_first = False
 
@@ -151,7 +154,7 @@ def main():
     bot = commands.Bot(command_prefix=args.prefix)
 
     bot.loop.run_until_complete(rcon.open_connection())
-    bot.loop.create_task(fetch_server_info(bot, rcon, db))
+    bot.loop.create_task(fetch_server_info(bot, rcon, db, args.rcon_fetch_freq))
 
     if args.allow_sudo:
         logging.warning('allow sudo is enabled! This gives acces to the ' +
